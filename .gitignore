@@ -1,0 +1,11 @@
+# Python-specific files
+*.pyc
+
+# Virtual environment directory
+screener_env/
+
+# Sensitive data
+.env
+
+# MacOS-specific files
+.DS_Store 
