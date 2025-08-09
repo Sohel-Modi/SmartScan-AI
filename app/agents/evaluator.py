@@ -1,0 +1,71 @@
+# app/agents/evaluator.py
+import os
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize the LLM (using the same model as the resume parser)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+# The prompt template is the "secret sauce" of this project
+template = """
+You are an expert technical recruiter. Your task is to evaluate a candidate based on their resume and GitHub profile against a specific job description. You must provide a score and a detailed explanation in JSON format.
+
+Here is the job description:
+---
+{job_description}
+---
+
+Here is the candidate's resume data (parsed into JSON):
+---
+{resume_data}
+---
+
+Here is the candidate's GitHub profile data (parsed into JSON):
+---
+{github_data}
+---
+
+Follow these instructions carefully:
+1.  Provide a score from 1 to 10 for the candidate's fit for the role.
+2.  Write a detailed, human-readable explanation for the score. The explanation must be concise but include specific examples from their resume (e.g., project names, skills) and GitHub profile (e.g., repository names, languages used, stars) to justify the score.
+3.  If no GitHub data is available, mention that in your explanation and base your evaluation solely on the resume.
+4.  Ensure the output is a single, valid JSON object.
+
+Expected JSON Format:
+{{
+    "candidate_name": "Full Name",
+    "score": 8,
+    "explanation": "Based on their experience with..."
+}}
+"""
+
+prompt = PromptTemplate(
+    input_variables=["job_description", "resume_data", "github_data"],
+    template=template
+)
+
+def evaluate_candidate(job_description: str, resume_data: dict, github_data: dict) -> dict:
+    """
+    Evaluates a candidate based on multiple data sources and provides a score and explanation.
+    """
+    chain = prompt | llm
+
+    # Prepare the input for the chain
+    input_data = {
+        "job_description": job_description,
+        "resume_data": str(resume_data), # Convert to string for the prompt
+        "github_data": str(github_data)  # Convert to string for the prompt
+    }
+
+    response = chain.invoke(input_data)
+
+    try:
+        import json
+        return json.loads(response.content)
+    except json.JSONDecodeError as e:
+        print(f"Error parsing JSON from LLM: {e}")
+        return {"error": "Could not parse JSON from LLM response."} 
