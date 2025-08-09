@@ -48,24 +48,61 @@ prompt = PromptTemplate(
     template=template
 )
 
+import json
+
+# Define the evaluation function
 def evaluate_candidate(job_description: str, resume_data: dict, github_data: dict) -> dict:
     """
     Evaluates a candidate based on multiple data sources and provides a score and explanation.
     """
     chain = prompt | llm
-
+    
     # Prepare the input for the chain
     input_data = {
         "job_description": job_description,
         "resume_data": str(resume_data), # Convert to string for the prompt
         "github_data": str(github_data)  # Convert to string for the prompt
     }
-
-    response = chain.invoke(input_data)
-
+    
     try:
-        import json
-        return json.loads(response.content)
+        response = chain.invoke(input_data)
+        
+        # --- FIX: Clean the LLM response before parsing ---
+        clean_response = response.content.strip()
+        if clean_response.startswith("```json"):
+            clean_response = clean_response[7:]
+        if clean_response.endswith("```"):
+            clean_response = clean_response[:-3]
+
+        return json.loads(clean_response)
+    
     except json.JSONDecodeError as e:
         print(f"Error parsing JSON from LLM: {e}")
-        return {"error": "Could not parse JSON from LLM response."} 
+        print(f"LLM response was: {response.content}")
+        return {}
+    except Exception as e:
+        print(f"An unexpected error occurred in LLM invocation: {e}")
+        return {}
+
+
+# def evaluate_candidate(job_description: str, resume_data: dict, github_data: dict) -> dict:
+#     """
+#     Evaluates a candidate based on multiple data sources and provides a score and explanation.
+#     """
+#     chain = prompt | llm
+
+#     # Prepare the input for the chain
+#     input_data = {
+#         "job_description": job_description,
+#         "resume_data": str(resume_data), # Convert to string for the prompt
+#         "github_data": str(github_data)  # Convert to string for the prompt
+#     }
+
+#     response = chain.invoke(input_data)
+
+#     try:
+#         import json
+#         return json.loads(response.content)
+#     except json.JSONDecodeError as e:
+#         print(f"Error parsing JSON from LLM: {e}")
+#         return {"error": "Could not parse JSON from LLM response."} 
