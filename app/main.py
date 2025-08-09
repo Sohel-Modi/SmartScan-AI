@@ -18,6 +18,7 @@ app = FastAPI(
 def read_root():
     return {"message": "SamrtScan AI is up and running!"}
 
+
 @app.post("/screen")
 async def screen_candidates(
     job_description: str = Form(...),
@@ -37,22 +38,28 @@ async def screen_candidates(
         # 2. Use the agent to parse the resume text
         parsed_resume_data = parse_resume(resume_text)
 
-        # 3. Find GitHub URL
-        github_url = find_github_url(resume_text)
-        github_username = None
-        if github_url:
-            github_username = github_url.split('/')[-1]
+        # Check if the name was successfully parsed
+        candidate_name = parsed_resume_data.get('name')
+        if not candidate_name:
+            print(f"Warning: Could not extract a name from {resume.filename}. Skipping GitHub search.")
+            github_data = {"error": "Could not extract candidate name from resume."}
         else:
-            # 4. Fallback: Search for GitHub profile by name
-            print(f"No GitHub URL found. Attempting to search for a profile for {parsed_resume_data.get('name')}.")
-            profile_url = find_github_profile_by_name(parsed_resume_data.get('name'))
-            if profile_url:
-                github_username = profile_url.split('/')[-1]
-
-        # 5. Get GitHub data
-        github_data = {}
-        if github_username:
-            github_data = get_github_data(github_username)
+            # 3. Find GitHub URL
+            github_url = find_github_url(resume_text)
+            github_username = None
+            if github_url:
+                github_username = github_url.split('/')[-1]
+            else:
+                # 4. Fallback: Search for GitHub profile by name
+                print(f"No GitHub URL found. Attempting to search for a profile for {candidate_name}.")
+                profile_url = find_github_profile_by_name(candidate_name)
+                if profile_url:
+                    github_username = profile_url.split('/')[-1]
+            
+            # 5. Get GitHub data
+            github_data = {}
+            if github_username:
+                github_data = get_github_data(github_username)
 
         # 6. Evaluate the candidate using the evaluator agent
         evaluation = evaluate_candidate(
@@ -60,7 +67,7 @@ async def screen_candidates(
             resume_data=parsed_resume_data,
             github_data=github_data
         )
-
+        
         evaluation_results.append(evaluation)
 
     return {
@@ -68,5 +75,6 @@ async def screen_candidates(
         "results": evaluation_results,
     }
 
+# ... (rest of the file)
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

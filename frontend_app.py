@@ -42,25 +42,25 @@ if st.button("Screen Candidates"):
                     results.sort(key=lambda x: x.get('score', 0), reverse=True)
 
                     for result in results:
-                        st.card(f"### {result.get('candidate_name', 'N/A')}")
-                        score = result.get('score', 'N/A')
-                        explanation = result.get('explanation', 'No explanation provided.')
+                        # Use a container to create a card-like effect
+                        with st.container(border=True):
+                            st.markdown(f"### {result.get('candidate_name', 'N/A')}")
+                            score = result.get('score', 'N/A')
+                            explanation = result.get('explanation', 'No explanation provided.')
 
-                        # Use a color-coded score bar
-                        if isinstance(score, (int, float)):
-                            if score >= 8:
-                                color = "green"
-                            elif score >= 5:
-                                color = "orange"
+                            # Use a color-coded progress bar for the score
+                            if isinstance(score, (int, float)):
+                                if score >= 8:
+                                    st.progress(score / 10, text=f"**Score:** :green[{score}/10]")
+                                elif score >= 5:
+                                    st.progress(score / 10, text=f"**Score:** :orange[{score}/10]")
+                                else:
+                                    st.progress(score / 10, text=f"**Score:** :red[{score}/10]")
                             else:
-                                color = "red"
+                                st.markdown(f"**Score:** {score}")
 
-                            st.progress(score / 10, text=f"**Score:** {score}/10")
-                        else:
-                            st.markdown(f"**Score:** {score}")
-
-                        with st.expander("Show Explanation"):
-                            st.write(explanation)
+                            with st.expander("Show Explanation"):
+                                st.write(explanation)
                 else:
                     st.error(f"Error from backend: {response.text}")
 
