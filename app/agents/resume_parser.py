@@ -1,10 +1,11 @@
 # app/agents/resume_parser.py
 import os
+import json
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
 # Initialize the LLM
@@ -27,6 +28,7 @@ Follow these rules:
 - Identify and list all projects with their descriptions.
 - Extract all professional experience entries, including company name, title, and duration.
 - Extract all educational qualifications, including degree, university, and year.
+- If a piece of information is not available, use null or an empty array.
 - Ensure the output is a single, valid JSON object.
 
 Expected JSON Format:
@@ -68,13 +70,62 @@ def parse_resume(resume_text: str) -> dict:
     """
     Parses a resume's text and returns a structured JSON object.
     """
-    chain = prompt | llm
-    response = chain.invoke({"resume_text": resume_text})
+    # If no text is extracted, return an empty dictionary immediately.
+    if not resume_text:
+        return {}
 
-    # The LLM output is a string, so we need to parse it as JSON
+    chain = prompt | llm
+    
     try:
-        import json
-        return json.loads(response.content)
+        # Invoke the LLM with the resume text.
+        response = chain.invoke({"resume_text": resume_text})
+        
+        # --- FIX: Clean the LLM response before parsing ---
+        clean_response = response.content.strip()
+        if clean_response.startswith("```json"):
+            clean_response = clean_response[7:]
+        if clean_response.endswith("```"):
+            clean_response = clean_response[:-3]
+
+        # Now try to parse the cleaned response.
+        return json.loads(clean_response)
+
     except json.JSONDecodeError as e:
+        # If the LLM returns non-JSON text, gracefully return an empty dict.
         print(f"Error parsing JSON from LLM: {e}")
-        return {"error": "Could not parse JSON from LLM response."} 
+        print(f"LLM response was: {response.content}")
+        return {}
+    except Exception as e:
+        # Catch any other unexpected errors and return an empty dict.
+        print(f"An unexpected error occurred in LLM invocation: {e}")
+        return {}
+
+
+# def parse_resume(resume_text: str) -> dict:
+#     """
+#     Parses a resume's text and returns a structured JSON object.
+#     """
+#     # If no text is extracted, return an empty dictionary immediately.
+#     if not resume_text:
+#         return {}
+
+#     chain = prompt | llm
+    
+#     try:
+#         # Invoke the LLM with the resume text.
+#         response = chain.invoke({"resume_text": resume_text})
+        
+#         # Parse the content of the LLM's response as JSON.
+#         # This is where the error was happening.
+#         return json.loads(response.content)
+
+#     except json.JSONDecodeError as e:
+#         # If the LLM returns non-JSON text, gracefully return an empty dict.
+#         print(f"Error parsing JSON from LLM: {e}")
+#         print(f"LLM response was: {response.content}")
+#         return {}
+#     except Exception as e:
+#         # Catch any other unexpected errors and return an empty dict.
+#         print(f"An unexpected error occurred in LLM invocation: {e}")
+#         return {}
+
