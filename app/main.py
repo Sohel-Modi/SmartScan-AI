@@ -98,12 +98,32 @@ async def screen_candidates(
 
         candidate_data["github_data"] = github_data
 
-        # 6. Evaluate the candidate using the evaluator agent
+
+         # 6. Evaluate the candidate using the evaluator agent
+        evaluation_input = {
+            "job_description": job_description,
+            "resume_data": parsed_resume_data,
+            "github_data": github_data
+        }
+
+        # --- NEW: Print the JSON input for debugging ---
+        print("\n" + "="*50)
+        print("JSON INPUT FOR EVALUATOR AGENT:")
+        print(json.dumps(evaluation_input, indent=4))
+        print("="*50 + "\n")
+        # --------------------------------------------------
+
         evaluation = evaluate_candidate(
             job_description=job_description,
             resume_data=parsed_resume_data,
             github_data=github_data
         )
+        # # 6. Evaluate the candidate using the evaluator agent
+        # evaluation = evaluate_candidate(
+        #     job_description=job_description,
+        #     resume_data=parsed_resume_data,
+        #     github_data=github_data
+        # )
         
         candidate_data["final_evaluation"] = evaluation
         evaluation_results.append(evaluation)
