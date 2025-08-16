@@ -9,3 +9,6 @@ screener_env/
 
 # MacOS-specific files
 .DS_Store 
+
+#additional data
+data_output/
