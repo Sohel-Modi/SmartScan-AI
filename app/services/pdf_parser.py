@@ -11,7 +11,6 @@ import json
 load_dotenv()
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-
 def extract_text_from_pdf(pdf_file: UploadFile) -> str:
     """Extracts text from a PDF file."""
     try:
@@ -24,39 +23,43 @@ def extract_text_from_pdf(pdf_file: UploadFile) -> str:
         print(f"Error extracting text from PDF: {e}")
         return ""
 
-
 def find_github_url_with_llm(text: str) -> str | None:
     """
-    Identifies a GitHub URL within a given text string using an LLM.
-    This is a more robust approach than regex alone.
+    Identifies a GitHub URL within a given text string using a hybrid LLM and regex approach.
     """
-    # Prompt to instruct the LLM to find the URL
+    # 1. Use a flexible regex to find any string that looks like a GitHub URL or username.
+    # This is more reliable than asking the LLM to find it from scratch.
+    github_pattern = r'github\.com/[\w-]+|priyanshujhaa|sohel\smodi'
+    match = re.search(github_pattern, text, re.IGNORECASE)
+    
+    potential_url_text = match.group(0) if match else "None"
+
+    # 2. Use a specific prompt to instruct the LLM to validate and clean the text.
     prompt_template = """
-    From the following text, find and extract the candidate's GitHub profile URL. 
-    The URL might be written as a full link (e.g., https://github.com/username) or just as a username. 
-    
-    If you find a URL, return it as a single string.
-    If you find a username but not a full URL, return the reconstructed URL (e.g., https://github.com/username).
-    If you cannot find a GitHub URL or username, return 'null'.
+    A candidate's resume text was scanned, and the following potential GitHub profile string was extracted:
+    '{potential_url_text}'
 
-    Resume Text:
-    ---
-    {resume_text}
-    ---
+    Your task is to either:
+    1. Reconstruct a clean, full GitHub URL from this string.
+    2. If the string is 'None' or does not contain a valid username, return 'null'.
 
-    Example of expected output:
-    https://github.com/Sohel-Modi
-    https://github.com/priyanshujhaa",
+    Follow these rules strictly:
+    - The output MUST be a full URL in the format 'https://github.com/username'.
+    - The username can only contain alphanumeric characters and hyphens.
+    - If the input is messy (e.g., 'github.com/in/Sohel Modi'), you must extract and use only the valid username ('Sohel-Modi').
 
-    Example of no output:
-    null
+    Example Output 1: https://github.com/priyanshujhaa
+    Example Output 2: https://github.com/Sohel-Modi
+    Example Output 3: null
+
+    Your response:
     """
     
-    prompt = PromptTemplate(input_variables=["resume_text"], template=prompt_template)
+    prompt = PromptTemplate(input_variables=["potential_url_text"], template=prompt_template)
     chain = prompt | llm
 
     try:
-        response = chain.invoke({"resume_text": text})
+        response = chain.invoke({"potential_url_text": potential_url_text})
         url = response.content.strip()
         
         if url.lower() == 'null':
@@ -66,6 +69,78 @@ def find_github_url_with_llm(text: str) -> str | None:
     except Exception as e:
         print(f"Error invoking LLM for URL extraction: {e}")
         return None
+
+
+
+
+# # app/services/pdf_parser.py
+# import pypdf
+# import re
+# from fastapi import UploadFile
+# from langchain_openai import ChatOpenAI
+# from langchain.prompts import PromptTemplate
+# from dotenv import load_dotenv
+# import os
+# import json
+
+# load_dotenv()
+# llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+
+# def extract_text_from_pdf(pdf_file: UploadFile) -> str:
+#     """Extracts text from a PDF file."""
+#     try:
+#         pdf_reader = pypdf.PdfReader(pdf_file.file)
+#         text = ""
+#         for page in pdf_reader.pages:
+#             text += page.extract_text() or ""
+#         return text
+#     except Exception as e:
+#         print(f"Error extracting text from PDF: {e}")
+#         return ""
+
+
+# def find_github_url_with_llm(text: str) -> str | None:
+#     """
+#     Identifies a GitHub URL within a given text string using an LLM.
+#     This is a more robust approach than regex alone.
+#     """
+#     # Prompt to instruct the LLM to find the URL
+#     prompt_template = """
+#     From the following text, find and extract the candidate's GitHub profile URL. 
+#     The URL might be written as a full link (e.g., https://github.com/username) or just as a username. 
+    
+#     If you find a URL, return it as a single string.
+#     If you find a username but not a full URL, return the reconstructed URL (e.g., https://github.com/username).
+#     If you cannot find a GitHub URL or username, return 'null'.
+
+#     Resume Text:
+#     ---
+#     {resume_text}
+#     ---
+
+#     Example of expected output:
+#     https://github.com/Sohel-Modi
+#     https://github.com/priyanshujhaa",
+
+#     Example of no output:
+#     null
+#     """
+    
+#     prompt = PromptTemplate(input_variables=["resume_text"], template=prompt_template)
+#     chain = prompt | llm
+
+#     try:
+#         response = chain.invoke({"resume_text": text})
+#         url = response.content.strip()
+        
+#         if url.lower() == 'null':
+#             return None
+#         return url
+        
+#     except Exception as e:
+#         print(f"Error invoking LLM for URL extraction: {e}")
+#         return None
 
 
 

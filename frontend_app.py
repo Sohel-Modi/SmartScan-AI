@@ -59,20 +59,18 @@ if st.button("Screen Candidates"):
                             else:
                                 st.markdown(f"**Score:** {score}")
 
-                            # with st.expander("Show Explanation"):
-                            #     st.write(explanation)
-                            
-                            # --- FIX: Display strengths and weaknesses as bullet points ---
+                            # --- FIX: Display strengths and weaknesses inside a dropdown ---
                             if explanation:
-                                st.markdown("#### Strengths")
-                                strengths = explanation.get("strengths", [])
-                                for s in strengths:
-                                    st.markdown(f"- {s}")
-                                
-                                st.markdown("#### Weaknesses")
-                                weaknesses = explanation.get("weaknesses", [])
-                                for w in weaknesses:
-                                    st.markdown(f"- {w}")
+                                with st.expander("Show Detailed Explanation"):
+                                    st.markdown("#### Strengths")
+                                    strengths = explanation.get("strengths", [])
+                                    for s in strengths:
+                                        st.markdown(f"- {s}")
+                                    
+                                    st.markdown("#### Weaknesses")
+                                    weaknesses = explanation.get("weaknesses", [])
+                                    for w in weaknesses:
+                                        st.markdown(f"- {w}")
                             else:
                                 st.markdown("No detailed explanation available.")
                 else:
