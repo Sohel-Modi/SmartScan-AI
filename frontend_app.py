@@ -59,10 +59,25 @@ if st.button("Screen Candidates"):
                             else:
                                 st.markdown(f"**Score:** {score}")
 
-                            with st.expander("Show Explanation"):
-                                st.write(explanation)
+                            # with st.expander("Show Explanation"):
+                            #     st.write(explanation)
+                            
+                            # --- FIX: Display strengths and weaknesses as bullet points ---
+                            if explanation:
+                                st.markdown("#### Strengths")
+                                strengths = explanation.get("strengths", [])
+                                for s in strengths:
+                                    st.markdown(f"- {s}")
+                                
+                                st.markdown("#### Weaknesses")
+                                weaknesses = explanation.get("weaknesses", [])
+                                for w in weaknesses:
+                                    st.markdown(f"- {w}")
+                            else:
+                                st.markdown("No detailed explanation available.")
                 else:
                     st.error(f"Error from backend: {response.text}")
 
             except requests.exceptions.RequestException as e:
                 st.error(f"Could not connect to the backend server. Is it running? Error: {e}")
+
